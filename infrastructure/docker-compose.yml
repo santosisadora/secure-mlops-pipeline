@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# MLflow Model Registry — Local Infrastructure
+#
+# Services:
+#   mlflow-db     → PostgreSQL 15 (metadata backend store)
+#   mlflow-server → MLflow Tracking Server (port 5000)
+#
+# Usage:
+#   cp ../.env.example ../.env   # fill in POSTGRES_PASSWORD
+#   docker compose --env-file ../.env up -d
+#   Open: http://localhost:5000
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTE: 'version' key is intentionally omitted — it is obsolete in Compose v2+
+
+networks:
+  mlops-net:
+    driver: bridge
+
+volumes:
+  postgres-data:        # Persistent PostgreSQL data
+  mlflow-artifacts:     # Persistent model artifact storage
+
+services:
+
+  # ── PostgreSQL — MLflow Backend Store ───────────────────────────────────────
+  mlflow-db:
+    image: postgres:15-alpine
+    container_name: mlflow-db
+    restart: unless-stopped
+    networks:
+      - mlops-net
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mlflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mlflow_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-mlflow}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mlflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MLflow Tracking Server ───────────────────────────────────────────────────
+  # The official mlflow image does NOT ship psycopg2, so we install it at
+  # build time using an inline Dockerfile (no external registry needed).
+  mlflow-server:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.mlflow
+    container_name: mlflow-server
+    restart: unless-stopped
+    networks:
+      - mlops-net
+    ports:
+      - "5000:5000"
+    depends_on:
+      mlflow-db:
+        condition: service_healthy
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    environment:
+      MLFLOW_BACKEND_STORE_URI: "postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow_secret}@mlflow-db:5432/${POSTGRES_DB:-mlflow}"
+      # mlflow-artifacts:/ tells clients to upload via the server's HTTP proxy
+      # instead of trying to write to a local path that doesn't exist on them
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: "mlflow-artifacts:/"
+    command: >
+      mlflow server
+        --host 0.0.0.0
+        --port 5000
+        --backend-store-uri postgresql://${POSTGRES_USER:-mlflow}:${POSTGRES_PASSWORD:-mlflow_secret}@mlflow-db:5432/${POSTGRES_DB:-mlflow}
+        --artifacts-destination /mlflow/artifacts
+        --default-artifact-root mlflow-artifacts:/
+        --serve-artifacts

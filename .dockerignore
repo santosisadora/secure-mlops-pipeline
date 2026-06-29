@@ -1,0 +1,36 @@
+# ── Version Control ────────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Secrets & Credentials (NEVER bake into the image) ─────────────────────────
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets/
+
+# ── Python Artifacts ──────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ── MLflow Artifacts (handled by mounted volumes, not image layers) ───────────
+mlruns/
+mlflow-artifacts/
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── CI / Tests ────────────────────────────────────────────────────────────────
+.github/
+tests/
+*.log

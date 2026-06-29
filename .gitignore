@@ -1,0 +1,26 @@
+# ── Secrets (NEVER commit these) ─────────────────────────────────────────────
+.env
+*.pem
+*.key
+*.crt
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ── MLflow local runs (stored in registry, not git) ──────────────────────────
+mlruns/
+mlflow-artifacts/
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

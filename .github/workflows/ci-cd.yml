@@ -1,0 +1,144 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI/CD Pipeline — Secure MLOps (DevSecOps)
+#
+# Jobs:
+#   1. lint       → flake8 code quality gate
+#   2. build      → Docker image build
+#   3. scan       → Trivy vulnerability scan (CRITICAL/HIGH = fail)
+#
+# Triggers: push to `main` branch
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Secure MLOps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: secure-mlops-trainer
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+
+  # ── Job 1: Code Quality — Linting ──────────────────────────────────────────
+  lint:
+    name: "🔍 Code Quality (flake8)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8 linter
+        run: |
+          flake8 src/ \
+            --max-line-length=100 \
+            --exclude=__pycache__ \
+            --statistics \
+            --count
+        # Fail the job on any PEP8 violation
+
+  # ── Job 2: Docker Image Build ───────────────────────────────────────────────
+  build:
+    name: "🐳 Build Docker Image"
+    runs-on: ubuntu-latest
+    needs: lint          # Only build if linting passes
+
+    outputs:
+      # Pass the full image reference to downstream jobs
+      image_ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false          # Build locally; push only after security gate passes
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true           # Load image into local Docker daemon for Trivy
+
+      - name: Save Docker image to tarball
+        run: |
+          docker save "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
+            -o /tmp/image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/image.tar
+          retention-days: 1    # Short-lived; only needed for security scan
+
+  # ── Job 3: Security — Trivy Vulnerability Scan ─────────────────────────────
+  scan:
+    name: "🛡️ Security Scan (Trivy)"
+    runs-on: ubuntu-latest
+    needs: build           # Scan the built image (requires Job 2 to succeed)
+
+    permissions:
+      contents: read
+      security-events: write    # Required to upload SARIF to GitHub Security tab
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/
+
+      - name: Load Docker image from tarball
+        run: docker load -i /tmp/image.tar
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          # ── Security gate: fail on CRITICAL or HIGH severity CVEs ──────────
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"             # Non-zero exit → pipeline fails
+          ignore-unfixed: true       # Ignore CVEs with no available fix
+          vuln-type: "os,library"    # Scan both OS packages and Python libs
+          timeout: "10m"
+
+      - name: Upload Trivy SARIF report to GitHub Security tab
+        if: always()   # Upload results even if the scan fails (for visibility)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Print scan summary
+        if: always()
+        run: |
+          echo "──────────────────────────────────────────"
+          echo "  Trivy scan complete for:"
+          echo "  Image → ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo "  Results uploaded to GitHub Security tab."
+          echo "──────────────────────────────────────────"

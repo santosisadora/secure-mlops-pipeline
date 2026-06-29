@@ -1,0 +1,10 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile.mlflow — MLflow Server with PostgreSQL driver
+#
+# The official ghcr.io/mlflow/mlflow image does not include psycopg2.
+# This thin layer adds it so the server can connect to a Postgres backend.
+# ─────────────────────────────────────────────────────────────────────────────
+FROM ghcr.io/mlflow/mlflow:v2.13.2
+
+# Install the PostgreSQL adapter (binary wheel — no build tools needed)
+RUN pip install --no-cache-dir psycopg2-binary==2.9.9
