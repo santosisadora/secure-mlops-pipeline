@@ -1,12 +1,13 @@
 # Core ML
-scikit-learn==1.4.2
-pandas==2.2.2
+scikit-learn>=1.5.0
+pandas>=2.2.2
+pyarrow>=17.0.0
 
 # MLflow tracking & model registry
 mlflow>=2.15.1
 
 # MLflow PostgreSQL backend store driver
-psycopg2-binary==2.9.9
+psycopg2-binary>=2.9.9
 
 # --- Agent & Graph Orchestration ---
 langchain-google-genai    # Gemini API wrapper
@@ -21,8 +22,3 @@ pgvector                  # Python bindings for PostgreSQL vector embeddings
 # --- Web Backend ---
 fastapi                   # Web framework for the agent API
 uvicorn[standard]         # ASGI server to run FastAPI
-
-# Core ML
-scikit-learn>=1.5.0
-pandas==2.2.2
-pyarrow>=17.0.0
