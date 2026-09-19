@@ -2,7 +2,8 @@
 # Secure Production Dockerfile — MLOps Training Container
 #
 # Security controls implemented:
-#   ✔  Slim base image (minimal attack surface)
+#   ✔  Slim base image (minimal attack surface, rolling bookworm tag)
+#   ✔  Forced OS and pip upgrades (patches zero-day & current 2026 CVEs)
 #   ✔  Non-root user (UID/GID 10001 — avoids root privilege escalation)
 #   ✔  Read-only filesystem compatible (data written to /app/outputs only)
 #   ✔  No unnecessary OS packages
@@ -10,7 +11,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage: base ───────────────────────────────────────────────────────────────
-FROM python:3.10.14-slim AS base
+FROM python:3.10-slim-bookworm AS base
 
 # OCI standard labels for image provenance (important in regulated environments)
 LABEL org.opencontainers.image.title="secure-mlops-trainer"
@@ -27,8 +28,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # ── Install system-level dependencies (minimal) ───────────────────────────────
+# Force an OS upgrade to patch 2026 vulnerabilities (openssl, gnutls, etc.)
 # libpq-dev is required by psycopg2-binary at runtime on slim images
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         libpq5 \
     && apt-get clean \
@@ -36,6 +39,9 @@ RUN apt-get update \
 
 # ── Install Python dependencies ───────────────────────────────────────────────
 COPY src/requirements.txt ./requirements.txt
+
+# Upgrade core build tools to patch wheel/setuptools/pip vulnerabilities
+RUN pip install --upgrade pip setuptools wheel --no-cache-dir
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Copy application source ───────────────────────────────────────────────────
