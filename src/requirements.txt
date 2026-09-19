@@ -3,7 +3,7 @@ scikit-learn==1.4.2
 pandas==2.2.2
 
 # MLflow tracking & model registry
-mlflow==2.13.2
+mlflow>=2.15.1
 
 # MLflow PostgreSQL backend store driver
 psycopg2-binary==2.9.9
@@ -21,3 +21,8 @@ pgvector                  # Python bindings for PostgreSQL vector embeddings
 # --- Web Backend ---
 fastapi                   # Web framework for the agent API
 uvicorn[standard]         # ASGI server to run FastAPI
+
+# Core ML
+scikit-learn==1.4.2
+pandas==2.2.2
+pyarrow>=17.0.0

@@ -10,7 +10,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage: base ───────────────────────────────────────────────────────────────
-FROM python:3.10-slim AS base
+FROM python:3.10.14-slim AS base
 
 # OCI standard labels for image provenance (important in regulated environments)
 LABEL org.opencontainers.image.title="secure-mlops-trainer"
