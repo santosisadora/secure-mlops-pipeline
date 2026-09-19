@@ -1,3 +1,4 @@
+# Initiating anomaly detection model training
 """
 Anomaly Detection Training Script — MLOps Portfolio Demo
 Treats the ML model as a "black box"; focus is on MLflow instrumentation.
