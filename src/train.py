@@ -4,16 +4,15 @@ Treats the ML model as a "black box"; focus is on MLflow instrumentation.
 """
 
 import os
-
-# Silence GitPython warning when git is not installed in the container
-os.environ.setdefault("GIT_PYTHON_REFRESH", "quiet")
-
 import mlflow
 import mlflow.sklearn
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score
+
+# Silence GitPython warning when git is not installed in the container
+os.environ.setdefault("GIT_PYTHON_REFRESH", "quiet")
 
 # ── MLflow Configuration ───────────────────────────────────────────────────────
 # Read from env so Docker's -e MLFLOW_TRACKING_URI=http://mlflow-server:5000

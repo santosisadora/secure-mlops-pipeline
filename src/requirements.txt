@@ -1,9 +1,0 @@
-# Core ML
-scikit-learn==1.4.2
-pandas==2.2.2
-
-# MLflow tracking & model registry
-mlflow==2.13.2
-
-# MLflow PostgreSQL backend store driver
-psycopg2-binary==2.9.9
