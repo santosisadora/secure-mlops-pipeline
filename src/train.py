@@ -1,4 +1,4 @@
-#Initiating anomaly detection model training-this comment triggers the CI/CD GitHub Actions Pipeline
+# Initiating anomaly detection model training-triggering the CI/CD GitHub Actions Pipeline
 """
 Anomaly Detection Training Script — MLOps Portfolio Demo
 Treats the ML model as a "black box"; focus is on MLflow instrumentation.
